@@ -1,0 +1,45 @@
+:8080 {
+  encode gzip
+
+  @cors_preflight {
+    method OPTIONS
+  }
+  handle @cors_preflight {
+    header {
+      Access-Control-Allow-Origin *
+      Access-Control-Allow-Methods "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+      Access-Control-Allow-Headers "Authorization,Content-Type,Accept,X-Requested-With,X-Host"
+      Access-Control-Allow-Credentials true
+      Access-Control-Max-Age 86400
+      Vary "Origin"
+    }
+    respond "" 204
+  }
+
+  header {
+    Access-Control-Allow-Origin *
+    Access-Control-Allow-Credentials true
+    Vary "Origin"
+  }
+
+  respond /health "OK" 200
+
+  # Allowed hosts via env var regex (set ALLOWED_HOSTS_REGEX in Compose)
+  @allowed_hosts {
+    header_regexp X-Host {$ALLOWED_HOSTS_REGEX}
+  }
+  handle @allowed_hosts {
+    reverse_proxy {http.request.header.X-Host}:443 {
+      transport http {
+        tls
+        tls_server_name "{http.request.header.X-Host}"
+      }
+      header_up Host {http.request.header.X-Host}
+    }
+  }
+
+  # Reject missing or disallowed X-Host
+  handle {
+    respond "Invalid or missing X-Host" 400
+  }
+}
