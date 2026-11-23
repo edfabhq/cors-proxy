@@ -23,7 +23,9 @@
     Vary "Origin"
   }
 
-  respond /health "OK" 200
+  handle /health {
+    respond "OK" 200
+  }
 
   # Allowed hosts via env var regex (set ALLOWED_HOSTS_REGEX in Compose)
   @allowed_hosts {
